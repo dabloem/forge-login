@@ -41,8 +41,6 @@ public class login extends AbstractUICommand {
 
 	@Override
 	public Result execute(UIExecutionContext context) throws Exception {
-		System.out.println( "login for " + iss.getValue() +"..." );
-
 		for (Authenticator authenticator : authenticators) {
 			if (authenticator.isEnabled()) {
 				Result r = authenticator.authenticate(Optional.ofNullable(iss.getValue()));

@@ -65,7 +65,7 @@
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>microprofile-config</artifactId>
       <classifier>forge-addon</classifier>
-      <version>1.0.2-SNAPSHOT</version>
+      <version>1.0.2.Final</version>
       <scope>provided</scope>
     </dependency>
 
@@ -91,7 +91,7 @@
       <classifier>forge-addon</classifier>
       <scope>provided</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.jboss.forge.furnace.test</groupId>
       <artifactId>furnace-test-harness</artifactId>
@@ -107,11 +107,6 @@
       <artifactId>ui</artifactId>
       <classifier>forge-addon</classifier>
     </dependency>
-    <!-- <dependency>
-      <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>configuration</artifactId>
-      <classifier>forge-addon</classifier>
-    </dependency> -->
   </dependencies>
   <dependencyManagement>
     <dependencies>

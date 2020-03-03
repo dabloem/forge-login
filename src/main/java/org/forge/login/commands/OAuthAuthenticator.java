@@ -50,6 +50,9 @@ public class OAuthAuthenticator implements Authenticator {
     private static final String AUTHORIZATION_SERVER_URL = OAUTH + ".auth-server-url";
 
     private static final String ROLE = "security.oauth2.role";
+    private static final String PORT = "security.oauth2.domain.port";
+    private static final String DOMAIN = "security.oauth2.domain.url";
+
     protected static final String API_KEY = "security.oauth2.client-id";
 
     @Inject
@@ -59,25 +62,26 @@ public class OAuthAuthenticator implements Authenticator {
     public Result authenticate(Optional<String> iss) throws AuthenticationException {
         // set up authorization code flow
         try {
-		AuthorizationCodeFlow flow = new AuthorizationCodeFlow.Builder(BearerToken.authorizationHeaderAccessMethod(),
-			HTTP_TRANSPORT,
-			JSON_FACTORY,
-			new GenericUrl(getConfigValue(TOKEN_SERVER_URL, iss)),
-			new ClientParametersAuthentication(getConfigValue(API_KEY, iss), ""), getConfigValue(API_KEY, iss), getConfigValue(AUTHORIZATION_SERVER_URL, iss))
-				.setScopes(Arrays.asList(SCOPE))
-                .setDataStoreFactory(DATA_STORE_FACTORY).build();
+            AuthorizationCodeFlow flow = new AuthorizationCodeFlow.Builder(BearerToken.authorizationHeaderAccessMethod(),
+                HTTP_TRANSPORT,
+                JSON_FACTORY,
+                new GenericUrl(getConfigValue(TOKEN_SERVER_URL, iss)),
+                new ClientParametersAuthentication(getConfigValue(API_KEY, iss), ""), getConfigValue(API_KEY, iss), getConfigValue(AUTHORIZATION_SERVER_URL, iss))
+                    .setScopes(Arrays.asList(SCOPE))
+                    .setDataStoreFactory(DATA_STORE_FACTORY).build();
 
-		// authorize
-		LocalServerReceiver receiver = new LocalServerReceiver.Builder().setHost(OAuth2ClientCredentials.DOMAIN).setPort(OAuth2ClientCredentials.PORT).build();
-		Credential cred = new AuthorizationCodeInstalledApp(flow, receiver).authorize(getConfigValue(ROLE, iss));
+            // authorize
+            int port = config.getOptionalValue(PORT, Integer.class).orElse(-1);
+            String domain = config.getOptionalValue(DOMAIN, String.class).orElse("localhost");
 
-        System.setProperty(getKey(TOKEN, iss), cred.getAccessToken());
+            LocalServerReceiver receiver = new LocalServerReceiver.Builder().setHost(domain).setPort(port).build();
+            Credential cred = new AuthorizationCodeInstalledApp(flow, receiver).authorize(getConfigValue(ROLE, iss));
 
+            System.setProperty(getKey(TOKEN, iss), cred.getAccessToken());
+            return Results.success("Oauth 'login' successfully.");
         } catch (IOException ex) {
             throw new AuthenticationException();
         }
-
-		return Results.success("Oauth 'login' successfully.");
     }
 
     @Override

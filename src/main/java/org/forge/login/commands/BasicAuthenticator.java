@@ -1,5 +1,6 @@
 package org.forge.login.commands;
 
+import java.util.Base64;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
@@ -16,25 +17,29 @@ import org.jboss.forge.addon.ui.result.Results;
 public class BasicAuthenticator implements Authenticator {
 
     private static final String BASIC = "security.basic";
+    private static final String USERNAME = BASIC + ".username";
+    private static final String PASSWORD = BASIC + ".password";
+    private static final String CREDENTIAL = BASIC + ".credential";
 
     @Inject
     Config config;
 
 	@Override
 	public Result authenticate(Optional<String> iss) throws AuthenticationException {
-        String usernameKey = getKey("security.basic.username", iss);
-        String passwordKey = getKey("security.basic.password", iss);
+        String usernameKey = getKey(USERNAME, iss);
+        String passwordKey = getKey(PASSWORD, iss);
 
         Optional<String> un = config.getOptionalValue(usernameKey, String.class);
         Optional<String> pw = config.getOptionalValue(passwordKey, String.class);
         if (un.isPresent() && pw.isPresent()) {
-            System.setProperty("security.basic.user", un.get());
-            System.setProperty("security.basic.pwd", pw.get());
+            String auth = un.get() + ":" + pw.get();
+            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+            
+            System.setProperty(CREDENTIAL, new String(encodedAuth));
+            return Results.success("Basic 'login' successfully!");
         } else {
-            return Results.fail("no username and password found!");
+            return Results.fail("no username or password found!");
         }
-		
-		return Results.success("Basic 'login' successfully!");
 	}
 
 	@Override
@@ -45,7 +50,7 @@ public class BasicAuthenticator implements Authenticator {
 
     static String getKey(String key, Optional<String> iss) {
         if (iss.isPresent()) {
-            key = key.replaceFirst("security\\.basic", "security.basic." + iss.get());
+            key = key.replaceFirst("security\\.basic", BASIC + "." + iss.get());
         }
         return key;
     }
