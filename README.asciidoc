@@ -12,12 +12,12 @@ This addon is a 'Furnace container' that provides *lifecycle* and *service regis
 [options="header"]
 |===
 |Addon |Exported |Optional
-|DEP1
-|yes
+|CDI
 |no
-|DEP2
-|yes
-|yes
+|no
+|Microprofile-config
+|no
+|no
 |===
 
 == Setup
@@ -31,7 +31,7 @@ To use this addon, you must add it as a dependency in the *pom.xml* of your `for
 [source,xml]
 ----
 <dependency>
-   <groupId>org.forge.login</groupId>
+   <groupId>org.jboss.forge.addon</groupId>
    <artifactId>forge-login</artifactId>
    <classifier>forge-addon</classifier>
    <version>${version}</version>

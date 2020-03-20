@@ -1,6 +1,7 @@
-package org.forge.login.commands;
+package org.jboss.forge.addon.login.commands;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
@@ -9,9 +10,14 @@ import javax.inject.Inject;
 import javax.naming.AuthenticationException;
 
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
+import com.google.api.client.auth.oauth2.AuthorizationCodeFlow.CredentialCreatedListener;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.auth.oauth2.TokenResponse;
+import com.google.api.client.auth.oauth2.AuthorizationCodeFlow.Builder;
+import com.google.api.client.auth.openidconnect.IdToken;
+import com.google.api.client.auth.openidconnect.IdTokenResponse;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.http.GenericUrl;
@@ -30,8 +36,6 @@ import org.jboss.forge.addon.ui.result.Results;
  */
 public class OAuthAuthenticator implements Authenticator {
 
-	/** Global instance of the HTTP transport. */
-	private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
 
 	/** Global instance of the JSON factory. */
 	static final JsonFactory JSON_FACTORY = new JacksonFactory();
@@ -50,7 +54,7 @@ public class OAuthAuthenticator implements Authenticator {
     private static final String AUTHORIZATION_SERVER_URL = OAUTH + ".auth-server-url";
 
     private static final String SCOPE = OAUTH + ".scope";
-    private static final String ROLE =  OAUTH + ".role";
+    private static final String USER =  System.getProperty("user.name");
     private static final String PORT =  OAUTH + ".domain.port";
     private static final String DOMAIN = OAUTH + ".domain.url";
 
@@ -61,6 +65,10 @@ public class OAuthAuthenticator implements Authenticator {
 
     @Override
     public Result authenticate(Optional<String> iss) throws AuthenticationException {
+        for (String prop : config.getPropertyNames()) {
+            System.out.println("prop:" + prop);
+        }
+
         // Default values if not provided
         String scope = config.getOptionalValue(getKey(SCOPE, iss), String.class).orElse("openid");
         String domain = config.getOptionalValue(getKey(DOMAIN, iss), String.class).orElse("localhost");
@@ -68,24 +76,45 @@ public class OAuthAuthenticator implements Authenticator {
 
         // set up authorization code flow
         try {
-            AuthorizationCodeFlow flow = new AuthorizationCodeFlow.Builder(BearerToken.authorizationHeaderAccessMethod(),
+            HttpTransport HTTP_TRANSPORT = getHTTPTransport();
+            
+            // AuthorizationCodeFlow flow = 
+            Builder builder = new AuthorizationCodeFlow.Builder(BearerToken.authorizationHeaderAccessMethod(),
                 HTTP_TRANSPORT,
                 JSON_FACTORY,
                 new GenericUrl(getConfigValue(TOKEN_SERVER_URL, iss)),
                 new ClientParametersAuthentication(getConfigValue(API_KEY, iss), ""), getConfigValue(API_KEY, iss), getConfigValue(AUTHORIZATION_SERVER_URL, iss))
                     .setScopes(Arrays.asList(scope))
-                    .setDataStoreFactory(DATA_STORE_FACTORY).build();
-
+                    .setDataStoreFactory(DATA_STORE_FACTORY)
+                    .setCredentialCreatedListener(new CredentialCreatedListener(){
+                    
+                        @Override
+                        public void onCredentialCreated(Credential credential, TokenResponse tokenResponse) throws IOException {
+                            IdTokenResponse resp = (IdTokenResponse) tokenResponse;
+                            System.out.println("IdToken: " + resp.getIdToken());
+                        }
+                    });
+                    // .build();
+            
+            IdTokenCodeFlow flow = new IdTokenCodeFlow(builder);
+            
             // authorize
             LocalServerReceiver receiver = new LocalServerReceiver.Builder().setHost(domain).setPort(port).build();
-            Credential cred = new AuthorizationCodeInstalledApp(flow, receiver).authorize(getConfigValue(ROLE, iss));
+            Credential cred = new AuthorizationCodeInstalledApp(flow, receiver).authorize(USER);
             // set system property with accessToken
             System.setProperty(getKey(TOKEN, iss), cred.getAccessToken());
             return Results.success("Oauth 'login' successfully.");
-        } catch (IOException ex) {
+        } catch (IOException | GeneralSecurityException ex) {
             System.out.println(ex.getMessage());
             throw new AuthenticationException();
         }
+    }
+
+    private NetHttpTransport getHTTPTransport() throws GeneralSecurityException {
+        if (config.getOptionalValue("security.oath2.doNotValidate", Boolean.class).orElse(false)) {
+            return new NetHttpTransport.Builder().doNotValidateCertificate().build();
+        }
+        return new NetHttpTransport();
     }
 
     @Override

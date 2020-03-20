@@ -1,8 +1,7 @@
-package org.forge.login.commands;
+package org.jboss.forge.addon.login.commands;
 
 import java.util.Optional;
 
-import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import org.jboss.forge.addon.ui.command.AbstractUICommand;
@@ -12,16 +11,12 @@ import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
 import org.jboss.forge.addon.ui.metadata.WithAttributes;
-import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
-import org.jboss.forge.addon.ui.result.Failed;
+import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 
-public class login extends AbstractUICommand {
-
-	@Inject
-	private Instance<Authenticator> authenticators;
+public class Logout extends AbstractUICommand {
 
 	@Inject
 	@WithAttributes(label = "iss")
@@ -29,9 +24,9 @@ public class login extends AbstractUICommand {
 
 	@Override
 	public UICommandMetadata getMetadata(UIContext context) {
-		return Metadata.forCommand(login.class)
-			.category(Categories.create("security"))
-			.name("login");
+		return Metadata.forCommand(Logout.class)
+		.category(Categories.create("security"))
+		.name("logout");
 	}
 
 	@Override
@@ -41,16 +36,17 @@ public class login extends AbstractUICommand {
 
 	@Override
 	public Result execute(UIExecutionContext context) throws Exception {
-		for (Authenticator authenticator : authenticators) {
-			if (authenticator.isEnabled()) {
-				Result r = authenticator.authenticate(Optional.ofNullable(iss.getValue()));
-				if (!(r instanceof Failed)) {
-					return r;
-				}
-			}
+		String key = OAuthAuthenticator.getKey(OAuthAuthenticator.TOKEN, Optional.ofNullable(iss.getValue()));
+		if (key != null) {
+			System.out.println(key);
+			System.clearProperty(key);
+		} else {
+			return Results.fail("not logged in!");
 		}
-
-		return Results.fail("Command 'login' failed.");
+		return Results.success("Command 'logout' successfully executed!");
 	}
 
+	public static boolean isLoggedIn(String iss){
+		return (System.getProperty(OAuthAuthenticator.getKey(OAuthAuthenticator.TOKEN, Optional.ofNullable(iss))) != null);
+	}
 }

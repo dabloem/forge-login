@@ -1,4 +1,4 @@
-package org.forge.login.commands;
+package org.jboss.forge.addon.login.commands;
 
 import java.util.Optional;
 

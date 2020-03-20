@@ -1,4 +1,4 @@
-package org.forge.login.commands;
+package org.jboss.forge.addon.login.commands;
 
 import java.util.Base64;
 import java.util.Optional;
@@ -36,7 +36,7 @@ public class BasicAuthenticator implements Authenticator {
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
             
             System.setProperty(CREDENTIAL, new String(encodedAuth));
-            return Results.success("Basic 'login' successfully!");
+            return Results.success("Basic 'login' credentials saved!");
         } else {
             return Results.fail("no username or password found!");
         }
