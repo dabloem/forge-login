@@ -16,7 +16,6 @@ import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.auth.oauth2.TokenResponse;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow.Builder;
-import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.auth.openidconnect.IdTokenResponse;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -26,6 +25,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.store.MemoryDataStoreFactory;
+import com.google.common.base.MoreObjects;
 
 import org.eclipse.microprofile.config.Config;
 import org.jboss.forge.addon.ui.result.Result;
@@ -65,10 +65,6 @@ public class OAuthAuthenticator implements Authenticator {
 
     @Override
     public Result authenticate(Optional<String> iss) throws AuthenticationException {
-        for (String prop : config.getPropertyNames()) {
-            System.out.println("prop:" + prop);
-        }
-
         // Default values if not provided
         String scope = config.getOptionalValue(getKey(SCOPE, iss), String.class).orElse("openid");
         String domain = config.getOptionalValue(getKey(DOMAIN, iss), String.class).orElse("localhost");
@@ -78,7 +74,6 @@ public class OAuthAuthenticator implements Authenticator {
         try {
             HttpTransport HTTP_TRANSPORT = getHTTPTransport();
             
-            // AuthorizationCodeFlow flow = 
             Builder builder = new AuthorizationCodeFlow.Builder(BearerToken.authorizationHeaderAccessMethod(),
                 HTTP_TRANSPORT,
                 JSON_FACTORY,
@@ -87,22 +82,19 @@ public class OAuthAuthenticator implements Authenticator {
                     .setScopes(Arrays.asList(scope))
                     .setDataStoreFactory(DATA_STORE_FACTORY)
                     .setCredentialCreatedListener(new CredentialCreatedListener(){
-                    
                         @Override
                         public void onCredentialCreated(Credential credential, TokenResponse tokenResponse) throws IOException {
                             IdTokenResponse resp = (IdTokenResponse) tokenResponse;
-                            System.out.println("IdToken: " + resp.getIdToken());
+                            System.setProperty(getKey(TOKEN, iss), MoreObjects.firstNonNull(resp.getIdToken(), resp.getAccessToken()));
                         }
                     });
-                    // .build();
             
             IdTokenCodeFlow flow = new IdTokenCodeFlow(builder);
             
             // authorize
             LocalServerReceiver receiver = new LocalServerReceiver.Builder().setHost(domain).setPort(port).build();
             Credential cred = new AuthorizationCodeInstalledApp(flow, receiver).authorize(USER);
-            // set system property with accessToken
-            System.setProperty(getKey(TOKEN, iss), cred.getAccessToken());
+            
             return Results.success("Oauth 'login' successfully.");
         } catch (IOException | GeneralSecurityException ex) {
             System.out.println(ex.getMessage());
