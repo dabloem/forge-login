@@ -41,7 +41,7 @@ public class Logout extends AbstractUICommand {
 			System.out.println(key);
 			System.clearProperty(key);
 		} else {
-			return Results.fail("not logged in, dude!");
+			return Results.fail("not logged in.");
 		}
 		return Results.success("Command 'logout' successfully executed!");
 	}
