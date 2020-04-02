@@ -31,11 +31,22 @@ public class Logout extends AbstractUICommand {
 
 	@Override
 	public void initializeUI(UIBuilder builder) throws Exception {
+		builder.add(iss);
 	}
 
 	@Override
 	public Result execute(UIExecutionContext context) throws Exception {
-		System.clearProperty(OAuthAuthenticator.getKey(OAuthAuthenticator.TOKEN, Optional.ofNullable(iss.getValue())));
+		String key = OAuthAuthenticator.getKey(OAuthAuthenticator.TOKEN, Optional.ofNullable(iss.getValue()));
+		if (key != null) {
+			System.out.println(key);
+			System.clearProperty(key);
+		} else {
+			return Results.fail("not logged in, dude!");
+		}
 		return Results.success("Command 'logout' successfully executed!");
+	}
+
+	public static boolean isLoggedIn(String iss){
+		return (System.getProperty(OAuthAuthenticator.getKey(OAuthAuthenticator.TOKEN, Optional.ofNullable(iss))) != null);
 	}
 }
