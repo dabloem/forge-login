@@ -11,6 +11,10 @@ ports:
   onOpen: ignore
 - port: 5900
   onOpen: ignore
+- port: 8500
+  onOpen: ignore
+- port: 8600
+  onOpen: ignore
 tasks:
 - init: yarn
   command: >
