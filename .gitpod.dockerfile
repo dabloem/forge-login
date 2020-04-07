@@ -4,4 +4,4 @@ FROM gitpod/workspace-full-vnc:latest
 ENV TRIGGER_REBUILD 2
 USER gitpod
 
-RUN curl http://forge.jboss.org/sh | sh
+RUN brew install jboss-forge
